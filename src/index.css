@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* 🔥 CONTROL FULL HEATMAP SIZE */
+.heatmap-container svg {
+  width: 500px !important;
+  height: auto;
+}
+
+/* 🔥 SMALL CELLS LIKE LEETCODE */
+.react-calendar-heatmap rect {
+  width: 5px;
+  height: 5px;
+  rx: 1px;
+}
+
+/* 🔥 LESS GAP */
+.react-calendar-heatmap .react-calendar-heatmap-week {
+  margin-bottom: 0px;
+}
+
+/* EMPTY */
+.color-empty {
+  fill: rgba(255,255,255,0.08);
+}
+
+/* ACTIVE */
+.color-scale-1 { fill: #ff6b6b; }
+.color-scale-2 { fill: #ff3b3b; }
+.color-scale-3 { fill: #ff1a1a; }
+.color-scale-4 { fill: #cc0000; }
+
+/* REMOVE TEXT */
+.react-calendar-heatmap text {
+  display: none;
+}
