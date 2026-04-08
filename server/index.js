@@ -17,13 +17,18 @@ app.listen(5000,()=>{
 let notes=[];
 app.post("/add-note",(req,res)=>{
     const {text} = req.body;
+    const tags= text.match(/#\w+/g)||[];
+    const cleanText=text.replace(/#\w+/g, "").trim();
 
     const note={
         id: Date.now(),
-        text,
+        text:cleanText,
+        tags:tags.map(tag=>tag.slice(1))||[],
         createdAt:new Date()
     }
+     console.log(note);
     notes.push(note);
+   
 
     res.json({message : "note-added",note});
 });

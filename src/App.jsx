@@ -7,6 +7,23 @@ import "./index.css";
 function App() {
   const [text, setText] = useState("");
   const [notes, setNotes] = useState([]);
+  const [search, setSearch] = useState("");
+  const [selectedTag, setSelectedTag] = useState(null);
+
+  const filteredNotes = notes.filter((note) => {
+    const matchesTag = selectedTag
+      ? note.tags && note.tags.includes(selectedTag)
+      : true;
+
+    const matchesSearch =
+      note.text.toLowerCase().includes(search.toLowerCase()) ||
+      (note.tags &&
+        note.tags.some((tag) =>
+          tag.toLowerCase().includes(search.toLowerCase()),
+        ));
+
+    return matchesTag && matchesSearch;
+  });
   const [hoverData, setHoverData] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -43,6 +60,7 @@ function App() {
         text: text,
       });
       setText("");
+      setSelectedTag(null);
       fetchNotes();
     } catch (error) {
       console.log("error adding notes:", error);
@@ -66,10 +84,35 @@ function App() {
   useEffect(() => {
     fetchNotes();
   }, []);
+  //🔥Streak
+  const getStreak = () => {
+    const data = getHeatMap();
+    let streak = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].count > 0) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  };
 
+  const getPeakDay = () => {
+    const map = {};
+
+    notes.forEach((n) => {
+      const day = new Date(n.id).toLocaleDateString("en-US", {
+        weekday: "long",
+      });
+
+      map[day] = (map[day] || 0) + 1;
+    });
+
+    return Object.keys(map).reduce((a, b) => (map[a] > map[b] ? a : b));
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-red-900 to-black text-white p-6">
-      
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">🧠 Second Brain</h1>
@@ -120,10 +163,12 @@ function App() {
 
       {/* 🔥 HEATMAP */}
       <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl mb-6 shadow-[0_0_40px_rgba(255,0,0,0.25)]">
-        
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-lg">📊 Daily Activity</h2>
-          <span className="text-sm text-gray-400">Last 4 months</span>
+          <span className="text-red-200 mr-20">
+            Max Streak: {getStreak()} days
+          </span>
+          <span className="text-sm text-red-200">Last 4 months</span>
         </div>
 
         <div className="flex justify-center">
@@ -135,7 +180,6 @@ function App() {
               endDate={new Date()}
               values={getHeatMap()}
               gutterSize={0}
-
               classForValue={(value) => {
                 if (!value || value.count === 0) return "color-empty";
                 if (value.count === 1) return "color-scale-1";
@@ -143,23 +187,19 @@ function App() {
                 if (value.count === 3) return "color-scale-3";
                 return "color-scale-4";
               }}
-
               // 🔥 HOVER (CUSTOM)
               onMouseOver={(event, value) => {
                 if (value && value.date) {
                   setHoverData(value);
                 }
               }}
-
               onMouseLeave={() => setHoverData(null)}
-
               // 🔥 CLICK
               onClick={(value) => {
                 if (value && value.date) {
                   setSelectedDate(value.date);
                 }
               }}
-
               titleForValue={(value) => {
                 if (!value || !value.date) return "No activity";
                 return `${value.count || 0} notes on ${value.date}`;
@@ -183,15 +223,14 @@ function App() {
             <h2 className="font-bold mb-3">{selectedDate}</h2>
 
             {notes.filter(
-              (n) =>
-                new Date(n.id).toISOString().slice(0, 10) === selectedDate
+              (n) => new Date(n.id).toISOString().slice(0, 10) === selectedDate,
             ).length === 0 ? (
               <p>No notes</p>
             ) : (
               notes
                 .filter(
                   (n) =>
-                    new Date(n.id).toISOString().slice(0, 10) === selectedDate
+                    new Date(n.id).toISOString().slice(0, 10) === selectedDate,
                 )
                 .map((n) => <p key={n.id}>• {n.text}</p>)
             )}
@@ -206,17 +245,42 @@ function App() {
         </div>
       )}
 
+      {/*Serach*/}
+      <input
+        placeholder="🔍 Serach Notes..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+        }}
+        className="w-[30rem] h-[5rem] bg-white/10 mb-4 p-3 rounded-lg"
+        type="text"
+      />
+
       {/* NOTES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {notes.length === 0 ? (
           <p className="text-gray-400">No notes yet...</p>
         ) : (
-          notes.map((note) => (
+          filteredNotes.map((note) => (
             <div
               key={note.id}
               className="p-4 rounded-xl bg-white/10 flex justify-between items-center"
             >
               <span>{note.text}</span>
+              <div className="mt-1 flex gap-2 flex-wrap">
+                {note.tags &&
+                  note.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      onClick={() => {
+                        setSelectedTag(tag);
+                      }}
+                      className="text-xs px-2 py-1 bg-red-500/30 rounded cursor-pointer hover:bg-red-500/50"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+              </div>
 
               <button
                 onClick={() => deleteNote(note.id)}
