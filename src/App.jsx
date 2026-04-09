@@ -3,17 +3,19 @@ import axios from "axios";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import "./index.css";
+import GraphView from "./components/GraphVeiw";
 
 function App() {
   const [text, setText] = useState("");
   const [notes, setNotes] = useState([]);
   const [search, setSearch] = useState("");
-  const [selectedTag, setSelectedTag] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const filteredNotes = notes.filter((note) => {
-    const matchesTag = selectedTag
-      ? note.tags && note.tags.includes(selectedTag)
-      : true;
+    const matchesTags =
+      selectedTags.length > 0
+        ? selectedTags.every((tag) => note.tags && note.tags.includes(tag))
+        : true;
 
     const matchesSearch =
       note.text.toLowerCase().includes(search.toLowerCase()) ||
@@ -22,7 +24,7 @@ function App() {
           tag.toLowerCase().includes(search.toLowerCase()),
         ));
 
-    return matchesTag && matchesSearch;
+    return matchesTags && matchesSearch;
   });
   const [hoverData, setHoverData] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -60,7 +62,7 @@ function App() {
         text: text,
       });
       setText("");
-      setSelectedTag(null);
+      setSelectedTags([]);
       fetchNotes();
     } catch (error) {
       console.log("error adding notes:", error);
@@ -110,6 +112,14 @@ function App() {
     });
 
     return Object.keys(map).reduce((a, b) => (map[a] > map[b] ? a : b));
+  };
+
+  const getRelatedNotes = (currentNote) => {
+    return notes.filter((note) => {
+      if (note.id === currentNote.id) return false;
+
+      return note.tags?.some((tag) => currentNote.tags?.includes(tag));
+    });
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-red-900 to-black text-white p-6">
@@ -264,16 +274,22 @@ function App() {
           filteredNotes.map((note) => (
             <div
               key={note.id}
-              className="p-4 rounded-xl bg-white/10 flex justify-between items-center"
+              className="p-4 rounded-xl bg-white/10 flex flex-col gap-2"
             >
               <span>{note.text}</span>
+
+              {/* TAGS */}
               <div className="mt-1 flex gap-2 flex-wrap">
                 {note.tags &&
                   note.tags.map((tag) => (
                     <span
                       key={tag}
                       onClick={() => {
-                        setSelectedTag(tag);
+                        setSelectedTags((prev) =>
+                          prev.includes(tag)
+                            ? prev.filter((t) => t !== tag)
+                            : [...prev, tag],
+                        );
                       }}
                       className="text-xs px-2 py-1 bg-red-500/30 rounded cursor-pointer hover:bg-red-500/50"
                     >
@@ -282,9 +298,26 @@ function App() {
                   ))}
               </div>
 
+              {/* 🔥 RELATED NOTES */}
+              <div className="text-xs text-gray-300">
+                Related:
+                {getRelatedNotes(note).length === 0 ? (
+                  <span className="ml-2 text-gray-500">None</span>
+                ) : (
+                  getRelatedNotes(note)
+                    .slice(0, 2)
+                    .map((n) => (
+                      <span key={n.id} className="ml-2 text-red-300">
+                        {n.text}
+                      </span>
+                    ))
+                )}
+              </div>
+
+              {/* DELETE */}
               <button
                 onClick={() => deleteNote(note.id)}
-                className="bg-red-500 px-2 py-1 rounded-md text-sm hover:bg-red-600"
+                className="bg-red-500 px-2 py-1 rounded-md text-sm hover:bg-red-600 w-fit"
               >
                 Delete
               </button>
@@ -292,6 +325,7 @@ function App() {
           ))
         )}
       </div>
+      <GraphView notes={notes}/>
     </div>
   );
 }
